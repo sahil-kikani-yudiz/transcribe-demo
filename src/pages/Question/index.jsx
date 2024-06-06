@@ -5,44 +5,68 @@ import { useAudioRecorder } from '../../hooks/useAudoRecorder'
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition'
 
 function Question() {
-  const { handleSubmit, control, setValue, formState: { errors } } = useForm()
-  const { isRecording, audioBlob, audioURL, startRecording, stopRecording, error } = useAudioRecorder()
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const {
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    formState: { errors }
+  } = useForm()
+  const { isRecording, audioBlob, audioURL, startRecording, stopRecording, error, resetRecording } = useAudioRecorder()
 
-  // function onSave(data) {
-  //   const formData = new FormData()
-  //   if (audioBlob) {
-  //     formData.append('audio', audioBlob, 'recording.wav')
-  //   }
-  //   formData.append('data', JSON.stringify(data))
-  //   console.log('data :>> ', data)
-  // }
+  const uploadFile = async () => {
+    const formData = new FormData()
+    console.log('audioBlob', audioBlob)
+    formData.append('localfile', audioBlob)
+    formData.append('username', 'hardik')
+    formData.append('datetime', '1122')
 
-  const question = 'First Question'
+    try {
+      const response = await fetch('http://13.233.5.250:5000/upload_speech', {
+        method: 'put',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      } else {
+        console.log('File uploaded successfully')
+      }
+    } catch (error) {
+      console.error(`Error: ${error}`)
+    }
+  }
 
   // http://192.168.11.102:5000/health
   async function handleApi(formData) {
-    const response = await fetch('http://192.168.11.102:5000/ask_rating', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        assessment_type: 'Managing Complexity',
-        admin_question: question,
-        user_prompt: formData?.answer
-      })
-    })
+    uploadFile()
+    // const response = await fetch('http://192.168.11.102:5000/ask_rating', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: JSON.stringify({
+    //     assessment_type: 'Managing Complexity',
+    //     admin_question: questionData[currentIndex]?.sTitle,
+    //     user_prompt: formData?.answer
+    //   })
+    // })
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const data = await response.json()
-    alert(`Rating: ${data?.rating}`);
+    // if (!response.ok) {
+    //   throw new Error(`HTTP error! status: ${response.status}`)
+    // }
+    resetTranscript()
+    resetRecording()
+    reset({ answer: '' })
+    
+    // const data = await response.json()
+    alert(`Rating: Medium`)
+    setCurrentIndex((pre) => pre + 1)
   }
 
   const startListening = () => SpeechRecognition.startListening({ continuous: true, language: 'en-IN' })
-  const { transcript, browserSupportsSpeechRecognition } = useSpeechRecognition()
+  const { transcript, browserSupportsSpeechRecognition, resetTranscript } = useSpeechRecognition()
 
   useEffect(() => {
     setValue('answer', transcript)
@@ -62,47 +86,59 @@ function Question() {
     SpeechRecognition.stopListening()
   }
 
+  const questionData = [
+    { sTitle: 'Question 1' },
+    { sTitle: 'Question 2' },
+    { sTitle: 'Question 3' },
+    { sTitle: 'Question 4' },
+    { sTitle: 'Question 5' }
+  ]
+
   return (
     <div className='text-center mt-5'>
-      <Form>
-        <Form.Group>
-          <Form.Label className='text-start mt-2'>{question}</Form.Label>
-        </Form.Group>
-        <Controller
-          name={`answer`}
-          control={control}
-          rules={{ required: "Answer is required" }}
-          render={({ field: { onChange, value } }) => (
-            <Form.Control onChange={onChange} value={value} disabled={isRecording}  as='textarea' className='w-50 d-inline-block' />
-          )}
-        />
-        {errors.answer && <p className="text-danger mt-2">{errors.answer.message}</p>}
-      </Form>
+      {currentIndex < 5 ? (
+        <Form>
+          <Form.Group>
+            <Form.Label className='text-start mt-2'>{questionData[currentIndex]?.sTitle}</Form.Label>
+          </Form.Group>
+          <Controller
+            name={`answer`}
+            control={control}
+            rules={{ required: 'Answer is required' }}
+            render={({ field: { onChange, value } }) => (
+              <Form.Control onChange={onChange} value={value} disabled={isRecording} as='textarea' className='w-50 d-inline-block' />
+            )}
+          />
+          {errors.answer && <p className='text-danger mt-2'>{errors.answer.message}</p>}
 
-      <div className='mt-3'>
-        {isRecording ? (
-          <>
-            <Button onClick={stopListeningAndRecording}>Stop Recording</Button>
-            <p className='text-danger mt-2'>Recording...</p>
-          </>
-        ) : (
-          <Button onClick={startListeningAndRecording}>Start Recording</Button>
-        )}
-        {error && <p className='text-danger mt-2'>{error}</p>}
-      </div>
-
-      <div className='mt-3'>
-        {audioURL && (
-          <div>
-            <p>Recorded Audio:</p>
-            <audio controls src={audioURL}></audio>
+          <div className='mt-3'>
+            {isRecording ? (
+              <>
+                <Button onClick={stopListeningAndRecording}>Stop Recording</Button>
+                <p className='text-danger mt-2'>Recording...</p>
+              </>
+            ) : (
+              <Button onClick={startListeningAndRecording}>Start Recording</Button>
+            )}
+            {error && <p className='text-danger mt-2'>{error}</p>}
           </div>
-        )}
-      </div>
 
-      <div className='mt-3'>
-        <Button onClick={handleSubmit(handleApi)}>Submit</Button>
-      </div>
+          <div className='mt-3'>
+            {audioURL && (
+              <div>
+                <p>Recorded Audio:</p>
+                <audio controls src={audioURL}></audio>
+              </div>
+            )}
+          </div>
+
+          <div className='mt-3'>
+            <Button onClick={handleSubmit(handleApi)}>Submit</Button>
+          </div>
+        </Form>
+      ) : (
+        <Button onClick={() => setCurrentIndex(0)}>Reset</Button>
+      )}
     </div>
   )
 }

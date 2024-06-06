@@ -43,6 +43,11 @@ export const useAudioRecorder = () => {
     }
   };
 
+  const resetRecording = () => {
+    setAudioBlob(null);
+    setAudioURL(null);
+  }
+
   return {
     isRecording,
     audioBlob,
@@ -50,5 +55,6 @@ export const useAudioRecorder = () => {
     startRecording,
     stopRecording,
     error,
+    resetRecording
   };
 };
