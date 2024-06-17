@@ -41,27 +41,27 @@ function Question() {
   // http://192.168.11.102:5000/health
   async function handleApi(formData) {
     uploadFile()
-    // const response = await fetch('http://192.168.11.102:5000/ask_rating', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: JSON.stringify({
-    //     assessment_type: 'Managing Complexity',
-    //     admin_question: questionData[currentIndex]?.sTitle,
-    //     user_prompt: formData?.answer
-    //   })
-    // })
+    const response = await fetch('http://13.233.5.250:5000/ask_rating', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        assessment_type: 'Managing Complexity',
+        admin_question: questionData[currentIndex]?.sTitle,
+        user_prompt: formData?.answer
+      })
+    })
 
-    // if (!response.ok) {
-    //   throw new Error(`HTTP error! status: ${response.status}`)
-    // }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
     resetTranscript()
     resetRecording()
     reset({ answer: '' })
-    
-    // const data = await response.json()
-    alert(`Rating: Medium`)
+
+    const data = await response.json()
+    alert(`Rating: ${data?.Rating}`)
     setCurrentIndex((pre) => pre + 1)
   }
 
@@ -87,15 +87,22 @@ function Question() {
   }
 
   const questionData = [
-    { sTitle: 'Question 1' },
-    { sTitle: 'Question 2' },
-    { sTitle: 'Question 3' },
-    { sTitle: 'Question 4' },
-    { sTitle: 'Question 5' }
+    { sTitle: 'What was the key business driver to enable the taking of the strategic decision?	' },
+    { sTitle: 'What was the big picture you were looking at, in this situation?' },
+    {
+      sTitle: 'Did you depend on intuition, past experience, valid data or a combination of these factors to take the strategic decision?'
+    },
+    { sTitle: 'How comfortable were you in taking this strategic decision? How did you feel?' },
+    { sTitle: 'Did you anticipate any stakeholder impact? What was your preparedness for this?	' }
   ]
 
   return (
-    <div className='text-center mt-5'>
+    <div className='text-center mt-5 justify-content-center d-flex flex-column align-items-center'>
+      <h3>Skills : Strategic Orientation</h3>
+      <p className='w-50'>
+        Tell us about a situation where you had to weigh the long-term business implications of a decision
+        you made for your department/organisation. What strategy did you apply or develop to achieve the business goal or desired outcome?
+      </p>
       {currentIndex < 5 ? (
         <Form>
           <Form.Group>
