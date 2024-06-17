@@ -17,13 +17,13 @@ function Question() {
 
   const uploadFile = async () => {
     const formData = new FormData()
-    console.log('audioBlob', audioBlob)
     formData.append('localfile', audioBlob)
     formData.append('username', 'hardik')
     formData.append('datetime', '1122')
 
     try {
       const response = await fetch('https://claude-demo.lc.webdevprojects.cloud/upload_speech', {
+        mode: 'cors', 
         method: 'put',
         body: formData
       })
@@ -46,6 +46,7 @@ function Question() {
       headers: {
         'Content-Type': 'application/json'
       },
+      mode: 'cors',
       body: JSON.stringify({
         assessment_type: 'Managing Complexity',
         admin_question: questionData[currentIndex]?.sTitle,
