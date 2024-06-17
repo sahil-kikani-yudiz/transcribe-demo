@@ -23,7 +23,7 @@ function Question() {
     formData.append('datetime', '1122')
 
     try {
-      const response = await fetch('http://13.233.5.250:5000/upload_speech', {
+      const response = await fetch('https://claude-demo.lc.webdevprojects.cloud/upload_speech', {
         method: 'put',
         body: formData
       })
@@ -41,7 +41,7 @@ function Question() {
   // http://192.168.11.102:5000/health
   async function handleApi(formData) {
     uploadFile()
-    const response = await fetch('http://13.233.5.250:5000/ask_rating', {
+    const response = await fetch('https://claude-demo.lc.webdevprojects.cloud/ask_rating', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
