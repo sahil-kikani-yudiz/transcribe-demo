@@ -3,9 +3,13 @@ import { Button, Form } from 'react-bootstrap'
 import { Controller, useForm } from 'react-hook-form'
 import { useAudioRecorder } from '../../hooks/useAudoRecorder'
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition'
+import { mkConfig, generateCsv, asString } from 'export-to-csv'
 
 function Question() {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [reportData, setReportData] = useState([])
+  const csvConfig = mkConfig({ useKeysAsHeaders: true })
+  const [isLoader, setIsLoader] = useState(false)
   const {
     handleSubmit,
     control,
@@ -15,39 +19,38 @@ function Question() {
   } = useForm()
   const { isRecording, audioBlob, audioURL, startRecording, stopRecording, error, resetRecording } = useAudioRecorder()
 
-  const uploadFile = async () => {
+  async function handleAudioFile(audioBlob, answerData) {
     const formData = new FormData()
     formData.append('localfile', audioBlob)
     formData.append('username', 'hardik')
     formData.append('datetime', '1122')
 
-    try {
-      const response = await fetch('https://claude-demo.lc.webdevprojects.cloud/upload_speech', {
-        mode: 'cors', 
-        method: 'put',
-        body: formData
-      })
+    const response = await fetch('https://claude-demo.lc.webdevprojects.cloud/upload_speech', {
+      method: 'PUT',
+      body: formData
+    })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      } else {
-        console.log('File uploaded successfully')
+    const data = await response.json()
+
+    setReportData((prev) => [
+      ...prev,
+      {
+        ...answerData,
+        audioUrl: data?.s3_file_url
       }
-    } catch (error) {
-      console.error(`Error: ${error}`)
-    }
+    ])
+    setCurrentIndex((pre) => pre + 1)
   }
-
-  // http://192.168.11.102:5000/health
   async function handleApi(formData) {
-    uploadFile()
+    setIsLoader(true)
     const response = await fetch('https://claude-demo.lc.webdevprojects.cloud/ask_rating', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      mode: 'cors',
       body: JSON.stringify({
+        admin_senario:
+          ' Tell us about a situation where you had to weigh the long-term business implications of a decision you made for your department/organisation.',
         assessment_type: 'Managing Complexity',
         admin_question: questionData[currentIndex]?.sTitle,
         user_prompt: formData?.answer
@@ -62,8 +65,15 @@ function Question() {
     reset({ answer: '' })
 
     const data = await response.json()
+    setIsLoader(false)
     alert(`Rating: ${data?.Rating}`)
-    setCurrentIndex((pre) => pre + 1)
+    const answerData = { question: questionData[currentIndex]?.sTitle, answer: formData?.answer, rating: data?.Rating }
+    if (audioBlob) {
+      handleAudioFile(audioBlob, answerData)
+    } else {
+      setReportData((prev) => [...prev, { ...answerData, audioUrl: '' }])
+      setCurrentIndex((pre) => pre + 1)
+    }
   }
 
   const startListening = () => SpeechRecognition.startListening({ continuous: true, language: 'en-IN' })
@@ -97,12 +107,24 @@ function Question() {
     { sTitle: 'Did you anticipate any stakeholder impact? What was your preparedness for this?	' }
   ]
 
+  function getCsvData() {
+    const csvData = generateCsv(csvConfig)(reportData)
+    const blob = new Blob([csvData], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'data.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className='text-center mt-5 justify-content-center d-flex flex-column align-items-center'>
       <h3>Skills : Strategic Orientation</h3>
       <p className='w-50'>
-        Tell us about a situation where you had to weigh the long-term business implications of a decision
-        you made for your department/organisation. What strategy did you apply or develop to achieve the business goal or desired outcome?
+        Tell us about a situation where you had to weigh the long-term business implications of a decision you made for your
+        department/organisation.
       </p>
       {currentIndex < 5 ? (
         <Form>
@@ -141,11 +163,16 @@ function Question() {
           </div>
 
           <div className='mt-3'>
-            <Button onClick={handleSubmit(handleApi)}>Submit</Button>
+            {isLoader ? <Button>...</Button> : <Button onClick={handleSubmit(handleApi)}>Submit</Button>}
           </div>
         </Form>
       ) : (
-        <Button onClick={() => setCurrentIndex(0)}>Reset</Button>
+        <>
+          <Button onClick={() => setCurrentIndex(0)}>Reset</Button>
+          <Button onClick={getCsvData} className='mt-2'>
+            Download Report
+          </Button>
+        </>
       )}
     </div>
   )
